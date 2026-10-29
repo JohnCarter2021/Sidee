@@ -38,7 +38,11 @@ class CatalogTest(unittest.TestCase):
                                 "url": "https://example.com/a",
                                 "category": "Tools"})
         path = catalog.custom_apps_path()
-        self.assertEqual(os.stat(path).st_mode & 0o777, 0o600)
+        # Windows chmod cannot enforce owner-only permissions (it
+        # reports 0o666), so the mode check is Unix-only, matching
+        # test_platform_support's certificate-file check.
+        if os.name != "nt":
+            self.assertEqual(os.stat(path).st_mode & 0o777, 0o600)
         customs = catalog.list_apps()[3:]
         self.assertEqual([a["key"] for a in customs], ["alpha", "zeta"])
         self.assertEqual(customs[1]["source"], "custom")
