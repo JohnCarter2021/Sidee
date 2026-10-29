@@ -153,6 +153,52 @@ def broadcasts_from_ifconfig(output: str) -> list[str]:
     return sorted({target for _, target in _interfaces_from_ifconfig(output)})
 
 
+def _interfaces_from_ip_addr(output: str) -> list[tuple[str, str]]:
+    """Parse Linux `ip addr` output: active broadcast interfaces only.
+
+    A header line carries the flags and (usually) the state; the
+    following indented `inet` lines carry address/prefix pairs. An
+    interface counts only when it is UP and BROADCAST, is not
+    LOOPBACK, and — when a state is reported — that state is UP, so
+    NO-CARRIER and DOWN interfaces are skipped even though they
+    still carry the UP flag. The broadcast is calculated from the
+    prefix, not copied from the `brd` field, so a stale or missing
+    `brd` cannot invent a wrong broadcast address.
+    """
+    interfaces: set[tuple[str, str]] = set()
+    active = False
+    for raw in output.splitlines():
+        header = re.match(r"^\d+:\s+\S+:\s+<([^>]+)>(.*)$", raw)
+        if header:
+            flags = set(header.group(1).split(","))
+            state = re.search(r"\bstate\s+(\S+)", header.group(2))
+            active = ({"UP", "BROADCAST"}.issubset(flags)
+                      and "LOOPBACK" not in flags
+                      and (state is None or state.group(1) == "UP"))
+            continue
+        if not active:
+            continue
+        match = re.match(r"\s+inet\s+(\d{1,3}(?:\.\d{1,3}){3})/(\d{1,2})\b", raw)
+        if not match:
+            continue
+        try:
+            address = ipaddress.IPv4Address(match.group(1))
+            prefix = int(match.group(2))
+        except ValueError:
+            continue
+        if (address.is_loopback or address.is_unspecified
+                or address.is_multicast or address.is_link_local):
+            continue
+        target = _broadcast(str(address), str(prefix))
+        if target:
+            interfaces.add((str(address), target))
+    return sorted(interfaces)
+
+
+def broadcasts_from_ip_addr(output: str) -> list[str]:
+    return sorted({target for _, target in _interfaces_from_ip_addr(output)})
+
+
 def local_ipv4_interfaces() -> list[tuple[str, str]]:
     """Inspect native LAN interfaces, returning their IPv4/broadcast pairs."""
     kwargs = dict(capture_output=True, text=True, errors="replace", timeout=3)
@@ -161,6 +207,21 @@ def local_ipv4_interfaces() -> list[tuple[str, str]]:
     elif os.name == "nt":
         command, parser = ["ipconfig"], _interfaces_from_ipconfig
         kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+    elif sys.platform == "linux":
+        # `ip` is the primary source; modern `ifconfig` output parses
+        # with the same parser as macOS, so it is the fallback when
+        # `ip` is missing, fails, or finds no broadcast interface.
+        for command, parser in ((["ip", "addr"], _interfaces_from_ip_addr),
+                                (["ifconfig"], _interfaces_from_ifconfig)):
+            try:
+                result = subprocess.run(command, **kwargs)
+            except (OSError, subprocess.TimeoutExpired):
+                continue
+            if result.returncode == 0:
+                found = parser(result.stdout)
+                if found:
+                    return found
+        return []
     else:
         return []
     try:

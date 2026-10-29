@@ -189,9 +189,10 @@ def _remove_custom(data: dict) -> dict:
 def _local_interfaces() -> list:
     """Local IPv4 interfaces, with an `ip addr` fallback on Linux.
 
-    platform_support.local_ipv4_interfaces() returns [] on Linux
-    (a known gap); without a fallback, diagnostics would report a
-    false "no network" on every Linux machine. The fallback parses
+    platform_support.local_ipv4_interfaces() now handles Linux
+    (`ip addr`, then `ifconfig`); this fallback only runs if it
+    still returns nothing, so diagnostics never report a false
+    "no network" from a single failed probe. The fallback parses
     only `ip addr` output for non-loopback inet addresses."""
     try:
         interfaces = platform_support.local_ipv4_interfaces()

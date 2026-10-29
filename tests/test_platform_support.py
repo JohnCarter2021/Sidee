@@ -203,6 +203,59 @@ class TestMacDiscovery(unittest.TestCase):
             self.assertEqual(platform.local_broadcasts(), [])
 
 
+LINUX_IP_ADDR = """1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    inet 127.0.0.1/8 scope host lo
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    inet 192.168.1.10/24 brd 192.168.1.255 scope global dynamic eth0
+    inet 192.168.1.11/24 brd 192.168.1.255 scope global secondary eth0
+    inet6 fe80::1ff:fe00:1/64 scope link
+3: wlan0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default qlen 1000
+    inet 10.0.0.5/24 brd 10.0.0.255 scope global wlan0
+4: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+5: veth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default
+    inet 169.254.3.7/16 brd 169.254.255.255 scope link veth0
+    inet 10.8.0.2/32 scope global veth0
+"""
+
+
+class TestLinuxDiscovery(unittest.TestCase):
+    def test_ip_addr_returns_only_active_broadcast_interfaces(self):
+        self.assertEqual(platform.broadcasts_from_ip_addr(LINUX_IP_ADDR),
+                         ["192.168.1.255"])
+        self.assertEqual(platform._interfaces_from_ip_addr(LINUX_IP_ADDR),
+                         [("192.168.1.10", "192.168.1.255"),
+                          ("192.168.1.11", "192.168.1.255")])
+
+    def test_linux_uses_ip_addr_first(self):
+        response = Mock(returncode=0, stdout=LINUX_IP_ADDR)
+        with patch.object(platform.sys, "platform", "linux"), \
+                patch.object(platform.subprocess, "run", return_value=response) as run:
+            self.assertEqual(platform.local_ipv4_interfaces(),
+                             [("192.168.1.10", "192.168.1.255"),
+                              ("192.168.1.11", "192.168.1.255")])
+        run.assert_called_once_with(["ip", "addr"], capture_output=True,
+                                    text=True, errors="replace", timeout=3)
+
+    def test_linux_falls_back_to_ifconfig_when_ip_finds_nothing(self):
+        ifconfig = ("eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500\n"
+                    "        inet 192.168.88.5  netmask 255.255.255.0  "
+                    "broadcast 192.168.88.255\n")
+        calls = [Mock(returncode=0, stdout=""),
+                 Mock(returncode=0, stdout=ifconfig)]
+        with patch.object(platform.sys, "platform", "linux"), \
+                patch.object(platform.subprocess, "run", side_effect=calls) as run:
+            self.assertEqual(platform.local_broadcasts(), ["192.168.88.255"])
+        self.assertEqual([call.args[0] for call in run.call_args_list],
+                         [["ip", "addr"], ["ifconfig"]])
+
+    def test_linux_returns_empty_when_both_commands_fail(self):
+        with patch.object(platform.sys, "platform", "linux"), \
+                patch.object(platform.subprocess, "run",
+                             side_effect=OSError("no ip command")):
+            self.assertEqual(platform.local_ipv4_interfaces(), [])
+
+
 class TestSocketLifecycle(unittest.TestCase):
     def test_discovery_closes_socket_after_receive_failure(self):
         connection = Mock()
