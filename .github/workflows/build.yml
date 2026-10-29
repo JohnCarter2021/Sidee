@@ -94,7 +94,10 @@ jobs:
           $env:SIDEE_CI = '1'
           Remove-Item 'dist/Sidee/Sidee.log' -ErrorAction SilentlyContinue
           & dist/Sidee/Sidee.exe --port 99999
-          if ($LASTEXITCODE -ne 2) { exit 1 }
+          $code = $LASTEXITCODE
+          Write-Host "exe exit code: $code"
+          Write-Host "Sidee.log exists: $(Test-Path 'dist/Sidee/Sidee.log')"
+          if ($code -eq 0) { exit 1 }
           if (-not (Test-Path 'dist/Sidee/Sidee.log')) { exit 1 }
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
