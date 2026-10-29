@@ -77,6 +77,7 @@ class TestNativeMacBuild(unittest.TestCase):
     def test_versions_follow_existing_release_tag_format(self):
         self.assertEqual(packaging.validate_version("v0.1.1"), "0.1.1")
         self.assertEqual(packaging.validate_version("v0.1.4.1"), "0.1.4.1")
+        self.assertEqual(packaging.validate_version("v0.1.4.2"), "0.1.4.2")
         for value in ("v1", "v1.2.3-preview", "1.2.3/../other", "1.2.3\n", "1.2.3.4.5"):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 packaging.validate_version(value)

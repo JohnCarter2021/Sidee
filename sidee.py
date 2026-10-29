@@ -14,6 +14,22 @@ import sys
 from core import client, presets, webui, native_session
 
 
+def _resolve_preset(p: dict, server: str | None) -> dict:
+    """Resolve a preset's launch URL, building it from a server address
+    when the preset needs one (Jellyfin) or optionally takes one (Stremio).
+    Raises ValueError for a missing or invalid server address, so install
+    and launch can never send a preset's empty placeholder URL to the TV."""
+    p = dict(p)
+    if p.get("needs_server"):
+        if not server:
+            raise ValueError(f"{p['name']} requires your server address: "
+                             f"--server YOUR_SERVER_IP:8096")
+        p["url"] = presets.build_server_url(server)
+    elif p.get("server_builder") == "stremio":
+        p["url"] = presets.build_stremio_url(server or "")
+    return p
+
+
 def cmd_cli(a) -> int:
     if a.cmd == "native":
         try:
@@ -45,25 +61,11 @@ def cmd_cli(a) -> int:
             print(f"unknown preset: {a.preset} "
                   f"(available: {', '.join(sorted(presets.PRESETS))})")
             return 2
-        if p.get("needs_server"):
-            if not getattr(a, "server", None):
-                print(f"{p['name']} requires your server address: "
-                      f"--server YOUR_SERVER_IP:8096")
-                return 2
-            p = dict(p)
-            try:
-                p["url"] = presets.build_server_url(a.server)
-            except ValueError as error:
-                print(str(error))
-                return 2
-        elif p.get("server_builder") == "stremio":
-            p = dict(p)
-            try:
-                p["url"] = presets.build_stremio_url(
-                    getattr(a, "server", "") or "")
-            except ValueError as error:
-                print(str(error))
-                return 2
+        try:
+            p = _resolve_preset(p, getattr(a, "server", None))
+        except ValueError as error:
+            print(str(error))
+            return 2
         s = client.Session.load()
         apps = client.add_tile(s, p["app_id"], p["name"], p["url"], p["image"])
         ok = any(client.tile_matches_request(x, p["app_id"], p["url"]) for x in apps)
@@ -74,6 +76,11 @@ def cmd_cli(a) -> int:
         p = presets.get(a.preset)
         if not p:
             print("unknown preset")
+            return 2
+        try:
+            p = _resolve_preset(p, getattr(a, "server", None))
+        except ValueError as error:
+            print(str(error))
             return 2
         client.launch_tile(client.Session.load(), p["app_id"], p["name"],
                            p["url"])
@@ -102,6 +109,7 @@ def main() -> int:
     ins.add_argument("--server", help="server address (for Jellyfin or Stremio)")
     sub.add_parser("list")
     la = sub.add_parser("launch"); la.add_argument("preset")
+    la.add_argument("--server", help="server address (for Jellyfin or Stremio)")
     a = p.parse_args()
 
     if a.port is not None and not 0 <= a.port <= 65535:

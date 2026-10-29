@@ -160,6 +160,59 @@ class TestTileAddressConfirmation(unittest.TestCase):
         self.assertFalse(client.tile_matches_request(
             {**NUVIO, "appUrl": OLD_NUVIO["url"]}, "nuviodebug", NUVIO_URL))
 
+    def test_superficial_address_differences_are_confirmed(self):
+        # A TV may report the same address with a different host case,
+        # a trailing slash, a default port, or surrounding whitespace.
+        # Those must not turn a real installation into "unconfirmed".
+        for reported in (
+            NUVIO_URL + "/",
+            "https://NUVIOTVSMART.VERCEL.APP/vidaa.html",
+            "https://nuviotvsmart.vercel.app:443/vidaa.html",
+            "  " + NUVIO_URL + "  ",
+            "https://nuviotvsmart.vercel.app/vidaa.html/",
+        ):
+            with self.subTest(reported=reported):
+                self.assertTrue(client.tile_matches_request(
+                    {"appId": "nuviodebug", "url": reported,
+                     "appUrl": reported}, "nuviodebug", NUVIO_URL))
+
+    def test_genuinely_different_path_is_still_not_confirmed(self):
+        self.assertFalse(client.tile_matches_request(
+            {"appId": "nuviodebug", "url": NUVIO_URL + "/other"},
+            "nuviodebug", NUVIO_URL))
+
+    def test_empty_requested_url_is_not_confirmed(self):
+        self.assertFalse(client.tile_matches_request(
+            {"appId": "nuviodebug", "url": NUVIO_URL}, "nuviodebug", ""))
+
+    def test_cli_launch_requires_a_server_for_jellyfin(self):
+        args = argparse.Namespace(cmd="launch", preset="jellyfin", server=None)
+        with patch.object(client.Session, "load"), \
+             patch.object(client, "launch_tile") as launch, \
+             redirect_stdout(io.StringIO()):
+            self.assertEqual(sidee.cmd_cli(args), 2)
+            launch.assert_not_called()
+
+    def test_cli_launch_builds_jellyfin_and_stremio_urls(self):
+        cases = (
+            ("jellyfin", "192.168.1.50",
+             "http://192.168.1.50:8096/web/index.html"),
+            ("stremio", "https://192.168.1.50:11470",
+             "https://noobygains.github.io/stremio-vidaa-tv/"
+             "?install_source=sidee&server="
+             "https%3A%2F%2F192.168.1.50%3A11470"),
+            ("nuvio", None, NUVIO_URL),
+        )
+        for preset, server, expected_url in cases:
+            with self.subTest(preset=preset), \
+                 patch.object(client.Session, "load"), \
+                 patch.object(client, "launch_tile") as launch, \
+                 redirect_stdout(io.StringIO()):
+                args = argparse.Namespace(cmd="launch", preset=preset, server=server)
+                self.assertEqual(sidee.cmd_cli(args), 0)
+                launch.assert_called_once()
+                self.assertEqual(launch.call_args.args[3], expected_url)
+
     def test_wrong_identity_or_missing_address_is_not_confirmed(self):
         for tile in (None, "invalid", {"appId": "other", "url": NUVIO_URL},
                      {"appId": "nuviodebug", "url": None},

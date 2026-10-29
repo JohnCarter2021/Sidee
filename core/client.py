@@ -839,13 +839,64 @@ def _mark_needs_pairing() -> None:
         s.save()
 
 
+def _normalize_tile_url(url: str) -> str:
+    """Normalise a tile URL for comparison only (the stored/requested
+    URL itself is never rewritten).
+
+    TVs may report the same address with a different host case, a
+    trailing slash, or a default port, and that must not turn a real
+    installation into an 'unconfirmed' one. Genuinely different paths
+    still do not match: normalisation is superficial only, so a tile
+    whose reported addresses disagree with each other still fails
+    the all-fields check in tile_matches_request.
+    """
+    value = url.strip()
+    if not value:
+        return ""
+    try:
+        parsed = urllib.parse.urlsplit(value)
+    except ValueError:
+        return value
+    if not parsed.scheme or not parsed.hostname:
+        # Not an absolute URL: only the trailing-slash form can vary
+        # safely here; path case is significant, so leave it alone.
+        return value[:-1] if len(value) > 1 and value.endswith("/") else value
+    try:
+        port = parsed.port
+    except ValueError:
+        return value
+    default_port = {"http": 80, "https": 443}.get(parsed.scheme.lower())
+    host = parsed.hostname
+    if ":" in host and not host.startswith("["):
+        host = f"[{host}]"
+    netloc = host
+    if port is not None and port != default_port:
+        netloc += f":{port}"
+    if parsed.username:
+        userinfo = parsed.username
+        if parsed.password:
+            userinfo += f":{parsed.password}"
+        netloc = f"{userinfo}@{netloc}"
+    path = parsed.path
+    if len(path) > 1 and path.endswith("/"):
+        path = path[:-1]
+    elif path == "/":
+        path = ""
+    return urllib.parse.urlunsplit(
+        (parsed.scheme.lower(), netloc, path, parsed.query, parsed.fragment))
+
+
 def tile_matches_request(tile: object, app_id: str, url: str) -> bool:
     """Confirm both the tile identity and the address reported by the TV."""
     if not isinstance(tile, dict) or str(tile.get("appId", "")).lower() != app_id.lower():
         return False
+    wanted = _normalize_tile_url(url)
+    if not wanted:
+        return False
     addresses = [tile[key].strip() for key in ("url", "appUrl", "URL")
                  if isinstance(tile.get(key), str) and tile[key].strip()]
-    return bool(addresses) and all(address == url for address in addresses)
+    return bool(addresses) and all(
+        _normalize_tile_url(address) == wanted for address in addresses)
 
 
 def add_tile(session: Session, app_id: str, name: str, url: str,
