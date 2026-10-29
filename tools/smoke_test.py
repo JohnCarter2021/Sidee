@@ -73,6 +73,14 @@ def smoke(command):
                     assert state["pid"] == process.pid
                 status, _, body = request(port, "/api/status?key=" + key)
                 assert status == 200 and json.loads(body)["state"] == "needs_pairing"
+                # The Phase 1 grid is served from this endpoint: a bundle
+                # missing core/catalog.py would pass every check above
+                # and still ship a grid with no apps in it.
+                status, _, body = request(port, "/api/catalog?key=" + key)
+                catalog = json.loads(body)
+                assert status == 200 and catalog["ok"]
+                assert {"nuvio", "stremio", "jellyfin"} <= {
+                    app["key"] for app in catalog["apps"]}
                 assert request(port, "/api/status")[0] == 403
                 assert request(port, "/api/status?key=incorrect")[0] == 403
                 status, _, body = request(port, "/?key=" + key)

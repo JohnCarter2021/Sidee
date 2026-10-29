@@ -82,6 +82,25 @@ class TestNativeMacBuild(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 packaging.validate_version(value)
 
+    def test_spec_datas_match_verified_resources(self):
+        # A resource added to verify_app's RESOURCES but forgotten in
+        # the spec would ship a bundle that fails its own verification
+        # (or a grid missing an asset) — lock the two lists together.
+        analysis = SimpleNamespace(pure=[], scripts=[], binaries=[], datas=[])
+        analysis_mock = Mock(return_value=analysis)
+        spec = packaging.ROOT / "packaging" / "macos.spec"
+        runpy.run_path(str(spec), init_globals={
+            "SPECPATH": str(spec.parent),
+            "Analysis": analysis_mock, "PYZ": Mock(),
+            "EXE": Mock(), "COLLECT": Mock(), "BUNDLE": Mock(),
+        })
+        datas = analysis_mock.call_args.kwargs["datas"]
+        expected = {(str(packaging.ROOT / relative),
+                     Path(relative).parent.as_posix()
+                     if str(Path(relative).parent) != "." else ".")
+                    for relative in packaging.RESOURCES}
+        self.assertEqual({(source, dest) for source, dest in datas}, expected)
+
     def test_hotfix_bundle_keeps_apple_version_fields_and_full_release(self):
         bundle = Mock()
         analysis = SimpleNamespace(pure=[], scripts=[], binaries=[], datas=[])
