@@ -265,7 +265,7 @@
         </div>
         <div class="step" id="stepInstall">
           <div class="step-heading"><span class="step-number">3</span><h3>Choose what you love</h3></div>
-          <p>Once paired, choose Nuvio, full Stremio for VIDAA, or Jellyfin. Stremio uses a TV-first interface with D-pad navigation and can also be linked to your streaming server. Then open the app from Home on your TV.</p>
+          <p>Once paired, choose apps from the grid below. Stremio uses a TV-first interface with D-pad navigation and can also be linked to your streaming server. Then open the app from Home on your TV.</p>
           <div class="ready-note"><svg class="icon" id="readyIcon" aria-hidden="true"><use href="#i-lock"/></svg><span id="readyText">Pair your TV to unlock installation</span></div>
         </div>
       </div>
@@ -273,33 +273,23 @@
     </section>
     <section class="catalog" aria-labelledby="catalogTitle">
       <div class="section-head"><h2 id="catalogTitle">Meet your next favorite.</h2><span class="section-meta">Apps for your VIDAA TV</span></div>
-      <div class="app-grid">
-        <article class="panel app featured">
-          <div class="featured-art" aria-hidden="true"><span class="featured-label"><svg class="icon"><use href="#i-star"/></svg>In the spotlight</span><div class="tv-preview"><img src="/assets/nuvio-wordmark.png" alt="" width="1088" height="344"></div></div>
-          <div class="app-body">
-            <div class="app-title"><h3>Nuvio</h3><span class="app-pill">Made for the big screen</span></div>
-            <p class="app-description">Movies, series, and live channels from your library.<br>A space for everything you love to watch.</p>
-            <div class="app-bottom"><span class="app-note"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Stays in your launcher</span><button class="button" id="btnInstall" disabled><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg><span>Install Nuvio</span></button></div>
-          </div>
-        </article>
-        <article class="panel app stremio">
-          <div class="app-body">
-            <div class="stremio-head"><img class="app-icon" src="https://noobygains.github.io/stremio-vidaa-tv/icon.png" alt="" width="50" height="50"><div><h3>Stremio</h3><small>Full Stremio · VIDAA TV build</small></div></div>
-            <p class="app-description">Full Stremio, not Stremio Lite.<br>TV interface built for D-pad focus and VIDAA viewport behaviour.</p>
-            <div class="field"><label for="stsrv">Streaming server URL · optional</label><input id="stsrv" type="text" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://… or http://192.168.…:11470" aria-describedby="stServerHelp stServerError"><span class="help-text" id="stServerHelp">Paste a Stremio server URL reachable by the TV (LAN HTTP or Remote HTTPS). Leave empty if you do not need a streaming server.</span><span class="field-error" id="stServerError" hidden></span></div>
-            <button class="button secondary" id="btnInstallStremio" disabled><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg><span>Install Stremio</span></button>
-          </div>
-        </article>
-        <article class="panel app jellyfin">
-          <div class="app-body">
-            <div class="jellyfin-head"><img class="app-icon" src="/assets/jellyfin.png" alt="" width="50" height="50"><div><h3>Jellyfin</h3><small>Your personal media library</small></div></div>
-            <p class="app-description">Your collection, on your TV.<br>Connect your Jellyfin server and settle in.</p>
-            <div class="field"><label for="jfsrv">Server address</label><input id="jfsrv" type="text" inputmode="url" autocomplete="url" spellcheck="false" placeholder="Your server's IP or URL" aria-describedby="serverHelp serverError"><span class="help-text" id="serverHelp">Use an address your TV can reach, rather than localhost.</span><span class="field-error" id="serverError" hidden></span></div>
-            <button class="button secondary" id="btnInstallJf" disabled><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg><span>Install Jellyfin</span></button>
-          </div>
-        </article>
-      </div>
-      <p class="install-hint" id="installHint"><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg>Connect your TV above to start installing.</p>
+      <div class="field"><label for="appSearch">Search apps</label><input id="appSearch" type="search" placeholder="Search by name or description" spellcheck="false"></div>
+      <div id="appFilters" role="group" aria-label="Filter apps by category"></div>
+      <div class="app-grid" id="appGrid"></div>
+      <p class="install-hint" id="installHint">Connect your TV above to start installing.</p>
+      <p id="gridState" role="status"></p>
+      <div class="field"><button class="button secondary" id="btnRefreshCatalog"><span>Refresh installed state</span></button> <button class="button secondary" id="btnDiagnostics"><span>Check my setup</span></button></div>
+      <div id="diagResults" role="status"></div>
+      <details id="customApp"><summary>Add a custom app</summary><div>
+        <div class="field"><label for="customAppId">App ID</label><input id="customAppId" type="text" spellcheck="false" placeholder="myapp" maxlength="32"></div>
+        <div class="field"><label for="customName">Name</label><input id="customName" type="text" spellcheck="false" placeholder="My App" maxlength="40"></div>
+        <div class="field"><label for="customUrl">App URL</label><input id="customUrl" type="text" inputmode="url" spellcheck="false" placeholder="https://…"></div>
+        <div class="field"><label for="customImage">Icon URL · optional</label><input id="customImage" type="text" inputmode="url" spellcheck="false" placeholder="https://…"></div>
+        <div class="field"><label for="customDescription">Description · optional</label><input id="customDescription" type="text" spellcheck="false" maxlength="200"></div>
+        <div class="field"><label for="customCategory">Category</label><select id="customCategory"><option>Media</option><option>Music</option><option>Tools</option><option selected>Custom</option></select></div>
+        <button class="button secondary" id="btnAddCustom"><span>Add custom app</span></button>
+        <div class="field-error" id="customError" role="alert" hidden></div>
+      </div></details>
     </section>
     <div class="utilities">
       <details><summary><svg class="icon" aria-hidden="true"><use href="#i-help"/></svg>A little help<svg class="icon chevron" aria-hidden="true"><use href="#i-chevron"/></svg></summary><div class="help-content">
@@ -364,9 +354,9 @@
     }
 
     function updateInstallButtons() {
-      $("btnInstall").disabled = !linked || installBusy || findBusy;
-      $("btnInstallStremio").disabled = !linked || installBusy || findBusy;
-      $("btnInstallJf").disabled = !linked || installBusy || findBusy;
+      const disabled = !linked || installBusy || findBusy;
+      document.querySelectorAll(".grid-install, .grid-launch").forEach(button => { button.disabled = disabled; });
+      document.querySelectorAll(".grid-remove").forEach(button => { button.disabled = installBusy || findBusy; });
     }
 
     function updatePairControls() {
@@ -408,7 +398,7 @@
       $("readyText").textContent = on ? "You're ready. Choose an app below." : "Pair your TV to unlock installation";
       $("readyIcon").querySelector("use").setAttribute("href", on ? "#i-check" : "#i-lock");
       $("installHint").hidden = on;
-      if (on) $("notice").hidden = true;
+      if (on) { $("notice").hidden = true; loadCatalog(); }
       updateInstallButtons();
       updatePairControls();
     }
@@ -613,14 +603,33 @@
       }
     };
 
-    async function installApp(app, extra) {
+    const STRINGS = {
+      install: "Install", launch: "Open", installing: "Installing…", launching: "Opening…",
+      installed: "Installed", unknown: "Not checked yet", remove: "Remove",
+      noMatch: "No apps match your search.", loading: "Loading apps…"
+    };
+    let catalogApps = [], catalogFilter = "All", catalogSearch = "", catalogLoading = false;
+    function gridButtonId(key, kind) { return "btn-grid-" + kind + "-" + key; }
+    function updateInstallButtons() {
+      const disabled = !linked || installBusy || findBusy;
+      document.querySelectorAll(".grid-install, .grid-launch").forEach(button => { button.disabled = disabled; });
+      document.querySelectorAll(".grid-remove").forEach(button => { button.disabled = installBusy || findBusy; });
+    }
+    function serverFor(key) {
+      const input = $("srv-" + key);
+      return input ? input.value.trim() : "";
+    }
+    function setGridButtonBusy(button, on, label) {
+      if (!button) return;
+      if (!button.dataset.label) button.dataset.label = button.querySelector("span").textContent;
+      button.querySelector("span").textContent = on ? label : button.dataset.label;
+      button.disabled = on;
+    }
+    async function installApp(key, name, server) {
       if (!linked || installBusy) return;
-      const buttons = {nuvio: "btnInstall", stremio: "btnInstallStremio", jellyfin: "btnInstallJf"};
-      const names = {nuvio: "Nuvio", stremio: "Stremio", jellyfin: "Jellyfin"};
-      const id = buttons[app];
-      const name = names[app];
+      const button = $(gridButtonId(key, "install"));
       installBusy = true;
-      busy(id, true, "Installing…");
+      setGridButtonBusy(button, true, STRINGS.installing);
       updateInstallButtons();
       updatePairControls();
       $("btnFind").disabled = true;
@@ -628,15 +637,14 @@
       $("banner").hidden = true;
       log("Adding " + name + " to your TV launcher…");
       try {
-        const result = await request("/api/install", Object.assign({app}, extra || {}));
+        const result = await request("/api/install", Object.assign({app: key}, server ? {server} : {}));
         if (result.ok) {
-          installed.add(app);
+          const entry = catalogApps.find(app => app.key === key);
+          if (entry) entry.installed = true;
+          renderGrid();
           $("bannerTitle").textContent = name + " is home.";
-          $("bannerText").textContent = app === "stremio"
-            ? "Press Home and open Stremio. Sidee can be closed; if you linked a streaming server, keep Stremio Service/Desktop running."
-            : "Press Home on your TV and select its tile. You can stop Sidee with Quit Sidee on macOS or Ctrl+C on Windows; Nuvio needs Internet and Jellyfin needs its server.";
+          $("bannerText").textContent = "Press Home on your TV and select its tile. You can stop Sidee with Quit Sidee on macOS or Ctrl+C on Windows.";
           $("banner").hidden = false;
-          $("banner").scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "nearest"});
           log(name + " is installed. Take a look at your TV launcher.", "ok");
           try { await syncStatus(); }
           catch (_) { log(name + " was installed, but connection status couldn't be checked. Refresh the dashboard before installing another app.", "err"); setLinked(false); }
@@ -647,38 +655,206 @@
       } catch (error) { log(error.message || "The connection was interrupted. Try installing again.", "err"); }
       finally {
         installBusy = false;
-        busy(id, false);
-        if (installed.has(app)) {
-          $(id).dataset.label = "Install " + name + " again";
-          $(id).querySelector("span").textContent = $(id).dataset.label;
-        }
+        setGridButtonBusy(button, false);
         updateInstallButtons();
         updatePairControls();
         $("btnFind").disabled = false;
         $("tvselect").disabled = false;
       }
     }
-    $("btnInstall").onclick = () => installApp("nuvio");
-    $("btnInstallStremio").onclick = () => {
-      const server = $("stsrv").value.trim();
-      installApp("stremio", server ? {server} : {});
-    };
-    $("stsrv").oninput = () => { $("stServerError").hidden = true; $("stsrv").removeAttribute("aria-invalid"); };
-    $("stsrv").onkeydown = event => { if (event.key === "Enter" && !$("btnInstallStremio").disabled) $("btnInstallStremio").click(); };
-    $("btnInstallJf").onclick = () => {
-      const server = $("jfsrv").value.trim();
-      if (!server) {
-        $("serverError").textContent = "Enter your Jellyfin server address.";
-        $("serverError").hidden = false;
-        $("jfsrv").setAttribute("aria-invalid", "true");
-        $("jfsrv").focus();
+    async function launchApp(key, name, server) {
+      if (!linked || installBusy) return;
+      const button = $(gridButtonId(key, "launch"));
+      installBusy = true;
+      setGridButtonBusy(button, true, STRINGS.launching);
+      updateInstallButtons();
+      log("Opening " + name + " on your TV…");
+      try {
+        const result = await request("/api/launch", Object.assign({app: key}, server ? {server} : {}));
+        if (result.ok) log(name + " was opened on your TV.", "ok");
+        else if (!handleAuth(result)) log(result.error || "Your TV didn't open the app. Try again.", "err");
+      } catch (error) { log(error.message || "The connection was interrupted. Try opening again.", "err"); }
+      finally {
+        installBusy = false;
+        setGridButtonBusy(button, false);
+        updateInstallButtons();
+      }
+    }
+    function renderFilters() {
+      const container = $("appFilters");
+      container.textContent = "";
+      const categories = ["All"].concat(catalogApps.map(app => app.category).filter((value, index, list) => list.indexOf(value) === index));
+      categories.forEach(category => {
+        const button = document.createElement("button");
+        button.className = "button secondary";
+        button.textContent = category;
+        button.setAttribute("aria-pressed", String(catalogFilter === category));
+        button.onclick = () => { catalogFilter = category; renderFilters(); renderGrid(); };
+        container.appendChild(button);
+      });
+    }
+    function renderGrid() {
+      const grid = $("appGrid");
+      grid.textContent = "";
+      const query = catalogSearch.toLowerCase();
+      const shown = catalogApps.filter(app => (catalogFilter === "All" || app.category === catalogFilter) && (!query || (app.name + " " + (app.description || "")).toLowerCase().includes(query)));
+      if (!shown.length) {
+        const empty = document.createElement("p");
+        empty.textContent = catalogApps.length ? STRINGS.noMatch : STRINGS.loading;
+        grid.appendChild(empty);
         return;
       }
-      installApp("jellyfin", {server});
+      shown.forEach(app => {
+        const article = document.createElement("article");
+        article.className = "panel app";
+        const body = document.createElement("div");
+        body.className = "app-body";
+        article.appendChild(body);
+        const head = document.createElement("div");
+        head.className = "app-title";
+        const title = document.createElement("h3");
+        title.textContent = app.name;
+        head.appendChild(title);
+        const pill = document.createElement("span");
+        pill.className = "app-pill";
+        pill.textContent = app.category + (app.source === "custom" ? " · Custom" : "");
+        head.appendChild(pill);
+        body.appendChild(head);
+        const imgSrc = app.icon && app.icon.startsWith("assets/") ? "/" + app.icon : (app.image || "");
+        if (imgSrc) {
+          const img = document.createElement("img");
+          img.className = "app-icon";
+          img.src = imgSrc;
+          img.alt = "";
+          img.width = 50;
+          img.height = 50;
+          body.appendChild(img);
+        }
+        const desc = document.createElement("p");
+        desc.className = "app-description";
+        desc.textContent = app.description || "";
+        body.appendChild(desc);
+        if (app.needs_server || app.server_builder) {
+          const field = document.createElement("div");
+          field.className = "field";
+          const label = document.createElement("label");
+          label.setAttribute("for", "srv-" + app.key);
+          label.textContent = app.server_placeholder || "Server address";
+          field.appendChild(label);
+          const input = document.createElement("input");
+          input.id = "srv-" + app.key;
+          input.type = "text";
+          input.inputMode = "url";
+          input.spellcheck = false;
+          input.placeholder = app.server_placeholder || "";
+          field.appendChild(input);
+          body.appendChild(field);
+        }
+        const bottom = document.createElement("div");
+        bottom.className = "app-bottom";
+        const note = document.createElement("span");
+        note.className = "app-note";
+        note.textContent = app.installed === true ? STRINGS.installed : app.installed === false ? "" : STRINGS.unknown;
+        bottom.appendChild(note);
+        const action = document.createElement("button");
+        const isInstalled = app.installed === true;
+        action.className = "button" + (isInstalled ? " secondary grid-launch" : " grid-install");
+        action.id = gridButtonId(app.key, isInstalled ? "launch" : "install");
+        const actionLabel = document.createElement("span");
+        actionLabel.textContent = (isInstalled ? STRINGS.launch : STRINGS.install) + " " + app.name;
+        action.appendChild(actionLabel);
+        action.onclick = () => {
+          const server = serverFor(app.key);
+          if (isInstalled) launchApp(app.key, app.name, server);
+          else {
+            if (app.needs_server && !server) {
+              log(app.name + " requires your server address.", "err");
+              const input = $("srv-" + app.key);
+              if (input) input.focus();
+              return;
+            }
+            installApp(app.key, app.name, server);
+          }
+        };
+        bottom.appendChild(action);
+        if (app.source === "custom") {
+          const remove = document.createElement("button");
+          remove.className = "button secondary grid-remove";
+          const removeLabel = document.createElement("span");
+          removeLabel.textContent = STRINGS.remove;
+          remove.appendChild(removeLabel);
+          remove.onclick = async () => {
+            if (!confirm("Remove " + app.name + " from your custom apps?")) return;
+            const result = await request("/api/custom/remove", {app_id: app.app_id});
+            if (result.ok) { log(app.name + " was removed.", "ok"); loadCatalog(true); }
+            else log(result.error || "Could not remove the custom app.", "err");
+          };
+          bottom.appendChild(remove);
+        }
+        body.appendChild(bottom);
+        grid.appendChild(article);
+      });
+      updateInstallButtons();
+    }
+    async function loadCatalog(force) {
+      if (catalogLoading) return;
+      catalogLoading = true;
+      try {
+        const result = await request("/api/catalog", undefined, force ? {force: "1"} : {});
+        if (result.ok) {
+          catalogApps = result.apps || [];
+          let text = "";
+          if (result.cached) text = "Installed state from cache.";
+          else if (result.refreshed_at) text = "Installed state updated " + new Date(result.refreshed_at * 1000).toLocaleTimeString() + ".";
+          else if (!result.paired) text = "Pair your TV to check which apps are installed.";
+          else text = "Installed state could not be checked.";
+          if (result.tv_error) text += " TV check: " + result.tv_error;
+          if (result.custom_error) text += " " + result.custom_error;
+          $("gridState").textContent = text;
+          renderFilters();
+          renderGrid();
+        } else log(result.error || "Couldn't load apps.", "err");
+      } catch (error) { log(error.message || "Couldn't load apps.", "err"); }
+      finally { catalogLoading = false; }
+    }
+    $("appSearch").oninput = () => { catalogSearch = $("appSearch").value.trim(); renderGrid(); };
+    $("btnRefreshCatalog").onclick = () => loadCatalog(true);
+    $("btnDiagnostics").onclick = async () => {
+      const results = $("diagResults");
+      results.textContent = "Checking your setup…";
+      try {
+        const result = await request("/api/diagnostics");
+        results.textContent = "";
+        const list = document.createElement("ul");
+        result.steps.forEach(step => {
+          const item = document.createElement("li");
+          item.textContent = (step.ok === true ? "✓ " : step.ok === false ? "✗ " : "– ") + step.name + ": " + step.detail;
+          list.appendChild(item);
+        });
+        results.appendChild(list);
+        log(result.ok ? "Setup check passed." : "Setup check found a problem. See the results above.", result.ok ? "ok" : "err");
+      } catch (error) { results.textContent = error.message || "Setup check failed."; }
     };
-    $("jfsrv").oninput = () => { $("serverError").hidden = true; $("jfsrv").removeAttribute("aria-invalid"); };
-    $("jfsrv").onkeydown = event => { if (event.key === "Enter" && !$("btnInstallJf").disabled) $("btnInstallJf").click(); };
-
+    $("btnAddCustom").onclick = async () => {
+      const data = {
+        app_id: $("customAppId").value.trim(),
+        name: $("customName").value.trim(),
+        url: $("customUrl").value.trim(),
+        image: $("customImage").value.trim(),
+        description: $("customDescription").value.trim(),
+        category: $("customCategory").value
+      };
+      $("customError").hidden = true;
+      const result = await request("/api/custom", data);
+      if (result.ok) {
+        log(data.name + " was added to your grid.", "ok");
+        ["customAppId", "customName", "customUrl", "customImage", "customDescription"].forEach(id => { $(id).value = ""; });
+        loadCatalog(true);
+      } else {
+        $("customError").textContent = result.error || "Could not add the custom app.";
+        $("customError").hidden = false;
+      }
+    };
     function applyStatus(status) {
       clearTimeout(expiryTimer);
       if (!tv) {
@@ -747,6 +923,7 @@
       }
     }
     loadPhoneAccess();
+    loadCatalog();
     syncStatus().catch(error => { setLinked(false); log(error.message || "Couldn't check the connection. Refresh the dashboard to try again.", "err"); });
   </script>
 </body>

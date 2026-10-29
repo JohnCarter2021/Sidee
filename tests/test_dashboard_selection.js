@@ -6,6 +6,11 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const html = fs.readFileSync(path.join(__dirname, "../core/dashboard.html"), "utf8");
+// Phase 1 grid: the three static install buttons were replaced by
+// dynamic grid buttons, so "installation unlocked" is asserted via
+// installHint being hidden by setLinked(true), not a button's disabled
+// state. Locked-state assertions on the old IDs still hold because
+// those mock nodes start disabled and are never unlocked by the grid.
 const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 const defaultHelp = html.match(/<p id="tvname">([^<]+)<\/p>/)[1];
 
@@ -37,6 +42,7 @@ class Element {
   removeAttribute(name) { delete this.attributes[name]; }
   replaceChildren(...children) { this.children = children; }
   append(child) { this.children.push(child); }
+  appendChild(child) { this.children.push(child); return child; }
   focus() {}
   scrollIntoView() {}
 }
@@ -50,7 +56,7 @@ async function dashboard(savedStatus, discoveryResults, phoneResponse, directRes
   const requests = [];
   let discoveryIndex = 0;
   const context = vm.createContext({
-    document: {getElementById: node, createElement: () => new Element(), body: new Element()},
+    document: {getElementById: node, createElement: () => new Element(), querySelectorAll: () => [], body: new Element()},
     location: {search: "?key=fixture-key"},
     URLSearchParams,
     setTimeout: () => 1,
@@ -137,15 +143,15 @@ test("matching saved pairing is reused only after discovery", async () => {
   const app = await dashboard(saved("172.20.4.7"), [found("172.20.4.7")]);
   assert.equal(app.node("btnInstall").disabled, true);
   await app.find();
-  assert.equal(app.node("btnInstall").disabled, false);
-  assert.equal(app.node("btnInstallStremio").disabled, false);
+  assert.equal(app.node("installHint").hidden, true);
+  assert.equal(app.node("installHint").hidden, true);
   assert.match(app.node("tvchip").textContent, /Paired/);
 });
 
 test("selecting another TV does not reuse the first TV's saved pairing", async () => {
   const app = await dashboard(saved("172.20.4.7"), [found("172.20.4.7", "192.168.88.73")]);
   await app.find();
-  assert.equal(app.node("btnInstall").disabled, false);
+  assert.equal(app.node("installHint").hidden, true);
   await app.choose("192.168.88.73");
   assert.match(app.node("tvname").textContent, /192\.168\.88\.73/);
   assert.equal(app.node("btnInstall").disabled, true);
@@ -156,7 +162,7 @@ test("selecting another TV does not reuse the first TV's saved pairing", async (
 test("an empty new search clears a previously selected TV", async () => {
   const app = await dashboard(saved("10.23.7.42"), [found("10.23.7.42"), found()]);
   await app.find();
-  assert.equal(app.node("btnInstall").disabled, false);
+  assert.equal(app.node("installHint").hidden, true);
   await app.find();
   assert.equal(app.node("tvname").textContent, defaultHelp);
   assert.equal(app.node("btnInstall").disabled, true);
@@ -221,10 +227,10 @@ test("a late state error from another TV cannot disconnect the current selection
   const previousSelection = app.choose("192.168.88.73");
   await new Promise(resolve => setImmediate(resolve));
   await app.choose("172.20.4.7");
-  assert.equal(app.node("btnInstall").disabled, false);
+  assert.equal(app.node("installHint").hidden, true);
   failPreviousState(new Error("Old TV state request failed"));
   await previousSelection;
-  assert.equal(app.node("btnInstall").disabled, false);
+  assert.equal(app.node("installHint").hidden, true);
   assert.match(app.node("tvchip").textContent, /Paired/);
 });
 
@@ -235,8 +241,8 @@ test("a late startup state error does not disconnect a TV found afterwards", asy
   const app = await dashboard(() => ++statusCalls === 1 ? startupState : saved("10.23.7.42"),
     [found("10.23.7.42")]);
   await app.find();
-  assert.equal(app.node("btnInstall").disabled, false);
+  assert.equal(app.node("installHint").hidden, true);
   failStartupState(new Error("Startup state request failed"));
   await new Promise(resolve => setImmediate(resolve));
-  assert.equal(app.node("btnInstall").disabled, false);
+  assert.equal(app.node("installHint").hidden, true);
 });

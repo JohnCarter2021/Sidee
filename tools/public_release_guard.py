@@ -14,7 +14,8 @@ import subprocess
 import zipfile
 
 CORE_MODULES = (
-    "__init__.py", "_qrcodegen.py", "client.py", "native_api.py",
+    "__init__.py", "_qrcodegen.py", "catalog.py", "client.py",
+    "native_api.py",
     "native_session.py", "pairing.py", "phone.py", "platform_support.py",
     "presets.py", "protocol.py", "webui.py",
 )

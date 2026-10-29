@@ -22,7 +22,7 @@ import time
 import urllib.parse
 import webbrowser
 
-from . import client, presets, platform_support
+from . import catalog, client, presets, platform_support
 from .pairing import PairingFlow
 from .phone import qr_image
 
@@ -92,6 +92,164 @@ def _probe_tv_ip(host: str) -> dict:
                        "be blocked; PIN pairing is still required."}
 
 
+_CATALOG_CACHE: dict = {"apps": None, "at": 0.0, "host": None}
+_CATALOG_LOCK = threading.Lock()
+_CATALOG_TTL = 60.0
+
+
+def _invalidate_catalog_cache() -> None:
+    with _CATALOG_LOCK:
+        _CATALOG_CACHE["apps"] = None
+        _CATALOG_CACHE["at"] = 0.0
+        _CATALOG_CACHE["host"] = None
+
+
+def _catalog_data(force_refresh: bool = False) -> dict:
+    """Catalogue for the grid, with cached installed state.
+
+    The grid must render instantly: a fresh TV app-list request
+    takes seconds, so a recent result is reused (60 s) and the
+    caller can force a refresh. If the TV does not answer, the
+    apps are still returned with installed=None, never guessed,
+    and a cached result is preferred over an error."""
+    catalog.maybe_migrate_presets_local()
+    apps = catalog.list_apps()
+    custom_error = catalog.last_custom_error()
+    session = client.Session().load_or_none()
+    if not session:
+        return {"ok": True, "apps": catalog.attach_installed(apps, None),
+                "cached": False, "refreshed_at": None, "paired": False,
+                "custom_error": custom_error}
+    with _CATALOG_LOCK:
+        cached = _CATALOG_CACHE["apps"]
+        age = time.time() - _CATALOG_CACHE["at"]
+        if (cached is not None and _CATALOG_CACHE["host"] == session.host
+                and not force_refresh and age < _CATALOG_TTL):
+            return {"ok": True, "apps": cached, "cached": True,
+                    "refreshed_at": int(_CATALOG_CACHE["at"]),
+                    "paired": True, "custom_error": custom_error}
+    try:
+        tiles = client.list_tiles(session)
+    except Exception as e:
+        with _CATALOG_LOCK:
+            if (_CATALOG_CACHE["apps"] is not None
+                    and _CATALOG_CACHE["host"] == session.host):
+                return {"ok": True, "apps": _CATALOG_CACHE["apps"],
+                        "cached": True,
+                        "refreshed_at": int(_CATALOG_CACHE["at"]),
+                        "paired": True, "custom_error": custom_error,
+                        "tv_error": str(e)}
+        return {"ok": True, "apps": catalog.attach_installed(apps, None),
+                "cached": False, "refreshed_at": None, "paired": True,
+                "custom_error": custom_error, "tv_error": str(e)}
+    attached = catalog.attach_installed(apps, tiles)
+    with _CATALOG_LOCK:
+        _CATALOG_CACHE["apps"] = attached
+        _CATALOG_CACHE["at"] = time.time()
+        _CATALOG_CACHE["host"] = session.host
+    return {"ok": True, "apps": attached, "cached": False,
+            "refreshed_at": int(_CATALOG_CACHE["at"]), "paired": True,
+            "custom_error": custom_error}
+
+
+def _launch_app(data: dict) -> dict:
+    app = catalog.get_app(str(data.get("app", "")))
+    if not app:
+        return {"ok": False, "error": "unknown app"}
+    server = str(data.get("server", "")).strip()
+    try:
+        url = catalog.resolve_url(app, server or None)
+        _validate_preset({"app_id": app["app_id"], "url": url,
+                          "name": app["name"], "image": app["image"]})
+    except ValueError as e:
+        return {"ok": False, "error": str(e)}
+    session = client.Session.load()
+    client.launch_tile(session, app["app_id"], app["name"], url)
+    return {"ok": True, "name": app["name"]}
+
+
+def _add_custom(data: dict) -> dict:
+    try:
+        cleaned = catalog.add_custom_app(data)
+    except ValueError as e:
+        return {"ok": False, "error": str(e)}
+    _invalidate_catalog_cache()
+    return {"ok": True, "app": cleaned}
+
+
+def _remove_custom(data: dict) -> dict:
+    try:
+        catalog.remove_custom_app(str(data.get("app_id", "")))
+    except ValueError as e:
+        return {"ok": False, "error": str(e)}
+    _invalidate_catalog_cache()
+    return {"ok": True}
+
+
+def _local_interfaces() -> list:
+    """Local IPv4 interfaces, with an `ip addr` fallback on Linux.
+
+    platform_support.local_ipv4_interfaces() returns [] on Linux
+    (a known gap); without a fallback, diagnostics would report a
+    false "no network" on every Linux machine. The fallback parses
+    only `ip addr` output for non-loopback inet addresses."""
+    try:
+        interfaces = platform_support.local_ipv4_interfaces()
+    except Exception:
+        interfaces = []
+    if interfaces:
+        return interfaces
+    if platform_support.sys.platform != "linux":
+        return interfaces
+    try:
+        import subprocess
+        out = subprocess.run(["ip", "addr"], capture_output=True,
+                             text=True, timeout=3).stdout
+    except Exception:
+        return interfaces
+    found = []
+    for line in out.splitlines():
+        parts = line.strip().split()
+        if len(parts) >= 2 and parts[0] == "inet":
+            ip = parts[1].split("/")[0]
+            if not ip.startswith("127."):
+                found.append(("ip", ip))
+    return found
+
+
+def _diagnostics() -> dict:
+    """Check-my-setup steps. Never includes tokens, PINs or the
+    dashboard key: only step results and the TV host (LAN IP)."""
+    steps = []
+    try:
+        interfaces = _local_interfaces()
+    except Exception:
+        interfaces = []
+    steps.append({"name": "Local network",
+                  "ok": bool(interfaces),
+                  "detail": (f"{len(interfaces)} local interface(s) found"
+                             if interfaces else
+                             "No local IPv4 interface found: check your network")})
+    session = client.Session().load_or_none()
+    steps.append({"name": "Saved pairing",
+                  "ok": session is not None,
+                  "detail": (f"Paired with TV at {session.host}" if session
+                             else "No saved pairing: pair your TV first")})
+    if session:
+        probe = _probe_tv_ip(session.host)
+        steps.append({"name": "TV reachable",
+                      "ok": bool(probe.get("ok")),
+                      "detail": (probe.get("message") or probe.get("error")
+                                 or "TV check failed")})
+    else:
+        steps.append({"name": "TV reachable", "ok": None,
+                      "detail": "Skipped: pair your TV first"})
+    steps.append({"name": "Dashboard", "ok": True,
+                  "detail": "Dashboard is running on this device"})
+    return {"ok": all(s["ok"] for s in steps if s["ok"] is not None),
+            "steps": steps, "paired": session is not None}
+
+
 class Handler(http.server.BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
@@ -150,6 +308,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
                                 "Find your TV again to update the phone QR code."})
                     return
             self._json(_phone_access(self.server.server_address[1], tv_host))
+        elif path == "/api/catalog":
+            query = urllib.parse.parse_qs(parts.query, keep_blank_values=True)
+            force = query.get("force", [""])[0] == "1"
+            self._json(_catalog_data(force_refresh=force))
+        elif path == "/api/diagnostics":
+            self._json(_diagnostics())
         elif path == "/api/discover":
             try:
                 tvs = [t.__dict__ | {"raw_description": ""}
@@ -191,6 +355,19 @@ class Handler(http.server.BaseHTTPRequestHandler):
                   ipaddress.ip_address(self.client_address[0]).is_loopback):
                 self._json({"ok": True})
                 self.server.stop_event.set()
+            elif parts.path == "/api/launch":
+                try:
+                    result = _launch_app(data)
+                except client.AuthError as e:
+                    self._json({"ok": False, "error": str(e),
+                                "needs_pairing": e.kind in
+                                ("none", "rejected", "expired", "corrupt", "needs_pairing")})
+                    return
+                self._json(result)
+            elif parts.path == "/api/custom":
+                self._json(_add_custom(data))
+            elif parts.path == "/api/custom/remove":
+                self._json(_remove_custom(data))
             elif parts.path == "/api/install":
                 try:
                     result = self._install(data)
@@ -210,24 +387,24 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._json({"ok": False, "error": str(e)})
 
     def _install(self, data: dict) -> dict:
-        key = data.get("app", "")
-        p = presets.get(key)
-        if not p:
-            return {"ok": False, "error": "unknown preset"}
+        app = catalog.get_app(str(data.get("app", "")))
+        if not app:
+            return {"ok": False, "error": "unknown app"}
         server = str(data.get("server", "")).strip()
-        if p.get("needs_server"):
-            if not server:
-                return {"ok": False, "error": "enter your " + p["name"]
-                                              + " server address"}
-            p = dict(p)
-            p["url"] = presets.build_server_url(server)
-        elif p.get("server_builder") == "stremio":
-            p = dict(p)
-            p["url"] = presets.build_stremio_url(server)
+        if app.get("needs_server") and not server:
+            return {"ok": False, "error": "enter your " + app["name"]
+                                          + " server address"}
+        # Invalid server addresses raise ValueError here, as before:
+        # the HTTP handler turns that into an error response, and no
+        # TV session is loaded or contacted for a bad address.
+        url = catalog.resolve_url(app, server or None)
+        p = {"app_id": app["app_id"], "name": app["name"], "url": url,
+             "image": app["image"]}
         _validate_preset(p)
         s = client.Session.load()
         apps = client.add_tile(s, p["app_id"], p["name"], p["url"],
                                p["image"])
+        _invalidate_catalog_cache()
         found = [a for a in apps
                  if isinstance(a, dict) and
                  str(a.get("appId", "")).lower() == p["app_id"]]
