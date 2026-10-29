@@ -214,8 +214,8 @@ jobs:
           path: dist/Sidee-Linux-x86_64.AppImage
           if-no-files-found: error
           retention-days: 30
-          
-          release:
+
+                      release:
     name: Prepare verified release assets
     if: "${{ github.event_name == 'push' && (startsWith(github.ref, 'refs/tags/v') || startsWith(github.event.head_commit.message, 'release: v')) }}"
     needs: [windows, windows-exe, macos, linux]
