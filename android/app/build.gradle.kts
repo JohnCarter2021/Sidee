@@ -52,10 +52,17 @@ chaquopy {
     }
 }
 
-// Copy the shared Python core into the Chaquopy source tree at build
-// time, instead of committing a second copy that would drift. The
-// generated tree is gitignored; only sidee_android.py is committed
-// under app/src/main/python.
+// Copy the shared Python core and image assets into the Chaquopy
+// source tree at build time, instead of committing a second copy
+// that would drift. The generated tree is gitignored; only
+// sidee_android.py is committed under app/src/main/python.
+//
+// NOTE: this must stay as TWO tasks with one from/into each. A
+// single Copy task with two into() calls silently sends BOTH
+// sources to the LAST destination (Gradle's into() is task-level,
+// not scoped to the preceding from()) — that bug shipped run #19,
+// where core/*.py landed under assets/ and the app crashed on
+// launch with ModuleNotFoundError: No module named 'core'.
 val copyCore = tasks.register<Copy>("copyCore") {
     from("../../core") {
         include("*.py")
@@ -63,6 +70,18 @@ val copyCore = tasks.register<Copy>("copyCore") {
         include("tv-client.bundle")
     }
     into("src/main/python/core")
+    doLast {
+        // Fail the build here, not at app launch, if the copy is wrong.
+        require(file("src/main/python/core/webui.py").exists()) {
+            "copyCore did not produce src/main/python/core/webui.py"
+        }
+        require(file("src/main/python/core/__init__.py").exists()) {
+            "copyCore did not produce src/main/python/core/__init__.py"
+        }
+    }
+}
+
+val copyAssets = tasks.register<Copy>("copyAssets") {
     from("../../assets") {
         include("*.png")
     }
@@ -70,7 +89,7 @@ val copyCore = tasks.register<Copy>("copyCore") {
 }
 
 tasks.named("preBuild") {
-    dependsOn(copyCore)
+    dependsOn(copyCore, copyAssets)
 }
 
 // Chaquopy's merge task consumes the copied core tree, so it must
@@ -78,7 +97,7 @@ tasks.named("preBuild") {
 // validation fails otherwise (run #14: mergeDebugPythonSources
 // used copyCore's output with no declared dependency).
 tasks.matching { it.name.endsWith("PythonSources") }.configureEach {
-    dependsOn(copyCore)
+    dependsOn(copyCore, copyAssets)
 }
 
 dependencies {

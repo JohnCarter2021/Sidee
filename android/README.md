@@ -19,7 +19,7 @@ to a full Android build:
 - One Activity (`MainActivity`) + one Python entry module
   (`sidee_android.py`). The dashboard, pairing, catalogue and grid
   are the shared desktop core, copied into the Chaquopy source tree
-  at build time by the `copyCore` Gradle task — never a second copy
+  at build time by the `copyCore`/`copyAssets` Gradle tasks — never a second copy
   committed to the repo. The generated tree
   (`app/src/main/python/core`, `app/src/main/python/assets`) is
   gitignored.
