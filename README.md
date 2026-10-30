@@ -24,7 +24,7 @@ Compatibility varies by TV model and firmware. The primary tested firmware is U0
 
 ## Get started
 
-Download the **0.2.0.0 release** from the [release page](https://github.com/JohnCarter2021/Sidee/releases/tag/v0.2.0.0). See the limits below and in the release notes before installing.
+Download the **0.2.0.1 release** from the [release page](https://github.com/JohnCarter2021/Sidee/releases/tag/v0.2.0.1). See the limits below and in the release notes before installing.
 
 Release assets (SHA-256 checksums in `SHA256SUMS.txt` on the same page):
 
