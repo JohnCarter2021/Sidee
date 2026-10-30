@@ -41,11 +41,12 @@ def _status() -> dict:
     s = client.Session().load_or_none()
     if not s:
         return {"paired": False, "state": "needs_pairing",
-                "message": "Pair your TV: the PIN on the screen is required"}
+                "message": "Pair your TV first: enter the PIN shown on your TV."}
     if s.expires_at and time.time() >= s.expires_at:
         return {"paired": True, "state": "expired", "host": s.host,
                 "expires_at": s.expires_at,
-                "message": "Token expired: pair your TV again to continue"}
+                "message": "Your TV connection has expired. Request a new code "
+                "on your TV and pair again."}
     return {"paired": True, "state": "ok", "host": s.host,
             "expires_at": s.expires_at}
 
@@ -337,8 +338,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 tvs = [t.__dict__ | {"raw_description": ""}
                        for t in client.discover()]
                 self._json({"ok": True, "tvs": tvs})
-            except Exception as e:
-                self._json({"ok": False, "error": repr(e)})
+            except Exception:
+                self._json({"ok": False, "error": "Couldn't search the network. "
+                                "Check this device is on Wi-Fi, then try again."})
         else:
             self._json({"error": "not found"}, 404)
 

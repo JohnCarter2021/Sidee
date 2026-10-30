@@ -462,7 +462,7 @@
           loadPhoneAccess();
           log("Found " + selected.friendly_name + " at " + selected.host
             + (linked ? ". Your saved connection is ready. Choose an app below." : ". Click Request code to connect."), "ok");
-        } else log(result.error || "No TV found. Check that both devices are on the same network, then try again.", "err");
+        } else log(result.error || "No TV found. Make sure your TV is switched on and on the same Wi-Fi as this device, then search again \u2014 or enter the TV's IP address below and check it.", "err");
       } catch (error) { log(error.message || "The search was interrupted. Try again.", "err"); }
       finally {
         findBusy = false;

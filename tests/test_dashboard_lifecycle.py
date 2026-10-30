@@ -13,6 +13,41 @@ from tools.smoke_test import request, smoke
 
 
 class TestDashboardLifecycle(unittest.TestCase):
+    def test_error_messages_use_plain_language(self):
+        from unittest.mock import Mock
+        from core import client
+        expired = Mock(host="192.168.1.10", expires_at=1)
+        with patch.object(client.Session, "load_or_none", return_value=expired):
+            status = webui._status()
+        self.assertEqual(status["state"], "expired")
+        self.assertNotIn("Token", status["message"])
+        self.assertIn("pair again", status["message"])
+        with patch.object(client.Session, "load_or_none", return_value=None):
+            status = webui._status()
+        self.assertEqual(status["state"], "needs_pairing")
+        self.assertIn("PIN shown on your TV", status["message"])
+        page = (Path(__file__).resolve().parent.parent
+                / "core" / "dashboard.html").read_text(encoding="utf-8")
+        self.assertIn("same Wi-Fi", page)
+
+    def test_discover_failure_hides_raw_exceptions(self):
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.dict(os.environ, {"SIDEE_STATE_DIR": directory}), \
+                patch.object(webui.client, "discover",
+                             side_effect=OSError("network unreachable")):
+            dashboard = webui.Dashboard(port=0)
+            try:
+                dashboard.start()
+                status, _, body = request(dashboard.port, "/api/discover?key=" +
+                                          webui.ACCESS_KEY)
+                self.assertEqual(status, 200)
+                payload = json.loads(body)
+                self.assertFalse(payload["ok"])
+                self.assertNotIn("OSError", payload["error"])
+                self.assertIn("Wi-Fi", payload["error"])
+            finally:
+                dashboard.close()
+
     def test_forget_tv_deletes_saved_pairing(self):
         with tempfile.TemporaryDirectory() as directory, \
                 patch.dict(os.environ, {"SIDEE_STATE_DIR": directory}):
