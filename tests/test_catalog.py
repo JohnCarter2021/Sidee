@@ -39,7 +39,13 @@ class CatalogTest(unittest.TestCase):
     def test_built_ins(self):
         apps = catalog.built_in_apps()
         self.assertEqual([a["key"] for a in apps],
-                         ["nuvio", "stremio", "jellyfin"])
+                         ["nuvio", "stremio", "jellyfin",
+                          "everythingmoe", "wotaku", "theindex",
+                          "justindex", "miruro", "animepahe", "mkissa",
+                          "anikototv", "reanime", "animex", "anipm",
+                          "nekowatch", "anidap", "anistream", "movy",
+                          "cinejoy", "popcornmovies", "flystream",
+                          "rivestream", "sevenmovies"])
         self.assertTrue(all(a["category"] == "Media" for a in apps))
         jellyfin = catalog.get_app("jellyfin")
         self.assertTrue(jellyfin["needs_server"])
@@ -59,7 +65,7 @@ class CatalogTest(unittest.TestCase):
         # test_platform_support's certificate-file check.
         if os.name != "nt":
             self.assertEqual(os.stat(path).st_mode & 0o777, 0o600)
-        customs = catalog.list_apps()[3:]
+        customs = catalog.list_apps()[len(catalog.built_in_apps()):]
         self.assertEqual([a["key"] for a in customs], ["alpha", "zeta"])
         self.assertEqual(customs[1]["source"], "custom")
 
@@ -162,7 +168,7 @@ class WebuiCatalogTest(unittest.TestCase):
             data = webui._catalog_data()
         self.assertTrue(data["ok"])
         self.assertFalse(data["paired"])
-        self.assertEqual(len(data["apps"]), 3)
+        self.assertEqual(len(data["apps"]), len(catalog.built_in_apps()))
         self.assertTrue(all(a["installed"] is None for a in data["apps"]))
 
     def test_catalog_paired_caches_and_forces_refresh(self):

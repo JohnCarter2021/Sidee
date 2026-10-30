@@ -23,7 +23,10 @@ CORE_MODULES = (
 TOP_LEVEL = ("README.md", "LICENSE", "requirements.txt", "sidee.py",
              "start-windows.bat", "start-windows.ps1")
 ASSETS = ("sidee-logo.png", "nuvio-wordmark.png", "jellyfin.png",
-          "jellyfin-tile-bold.png", "stremio.png")
+          "jellyfin-tile-bold.png", "stremio.png",
+          "logos/mkissa.png", "logos/nekowatch.png", "logos/anistream.png",
+          "logos/movy.png", "logos/popcornmovies.png", "logos/flystream.png",
+          "logos/rivestream.png", "logos/sevenmovies.png")
 PUBLIC_FILES = (*TOP_LEVEL, *("core/" + n for n in CORE_MODULES),
                 "core/dashboard.html", "core/tv-client.bundle",
                 *("assets/" + n for n in ASSETS))
