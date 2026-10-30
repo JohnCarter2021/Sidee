@@ -21,7 +21,7 @@ import urllib.request
 # Keep in sync with the build scripts' SIDEE_BUILD_VERSION default
 # (packaging/*.spec, tools/build_*_release.py) and Android versionName.
 # Phase 5 adds a CI test for this mapping; until then, bump them together.
-CURRENT_VERSION = "0.2.0.0"
+CURRENT_VERSION = "0.2.0.1"
 LATEST_RELEASE_URL = (
     "https://api.github.com/repos/JohnCarter2021/Sidee/releases/latest"
 )

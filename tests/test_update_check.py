@@ -22,14 +22,14 @@ class TestParseVersion(unittest.TestCase):
 class TestCheck(unittest.TestCase):
     def test_newer_release_is_offered(self):
         result = update_check.check(
-            fetch=lambda: {"tag_name": "v0.2.0.1",
+            fetch=lambda: {"tag_name": "v0.2.0.2",
                            "html_url": "https://example.invalid/r/1"})
-        self.assertEqual(result, {"ok": True, "current": "0.2.0.0",
-                                  "latest": "0.2.0.1", "update_available": True,
+        self.assertEqual(result, {"ok": True, "current": "0.2.0.1",
+                                  "latest": "0.2.0.2", "update_available": True,
                                   "url": "https://example.invalid/r/1"})
 
     def test_same_and_older_are_not_offered(self):
-        for tag in ("v0.2.0.0", "v0.1.4.2"):
+        for tag in ("v0.2.0.1", "v0.2.0.0", "v0.1.4.2"):
             result = update_check.check(fetch=lambda tag=tag: {"tag_name": tag})
             self.assertFalse(result["update_available"])
             self.assertEqual(result["url"], update_check.RELEASES_URL)

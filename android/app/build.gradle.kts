@@ -14,8 +14,8 @@ android {
         applicationId = "io.github.johncarter2021.sidee"
         minSdk = 24
         targetSdk = 34
-        versionCode = 2
-        versionName = "0.2.0.0"
+        versionCode = 3
+        versionName = "0.2.0.1"
         ndk {
             // Chaquopy ABIs: arm64 for phones, x86_64 for emulators.
             abiFilters += listOf("arm64-v8a", "x86_64")
