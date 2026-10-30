@@ -13,6 +13,26 @@ from tools.smoke_test import request, smoke
 
 
 class TestDashboardLifecycle(unittest.TestCase):
+    def test_forget_tv_deletes_saved_pairing(self):
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.dict(os.environ, {"SIDEE_STATE_DIR": directory}):
+            from core import client
+            path = Path(client.Session.path())
+            path.write_text("{}")
+            dashboard = webui.Dashboard(port=0)
+            try:
+                dashboard.start()
+                status, _, body = request(dashboard.port, "/api/forget?key=" +
+                                          webui.ACCESS_KEY, "POST", "{}")
+                self.assertEqual(status, 200)
+                self.assertEqual(json.loads(body), {"ok": True, "forgotten": True})
+                self.assertFalse(path.exists())
+                status, _, body = request(dashboard.port, "/api/forget?key=" +
+                                          webui.ACCESS_KEY, "POST", "{}")
+                self.assertEqual(json.loads(body), {"ok": True, "forgotten": False})
+            finally:
+                dashboard.close()
+
     def test_loopback_bind_is_used_when_requested(self):
         # Regression: Android's sidee_android passes host="127.0.0.1"
         # and run #20 crashed with "unexpected keyword argument 'host'"

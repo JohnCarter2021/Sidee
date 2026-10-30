@@ -240,7 +240,7 @@
     </section>
     <div id="banner" role="status" hidden><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><div><b id="bannerTitle">Make yourself at home.</b><span id="bannerText">Your app is in the TV launcher. Select its tile to open it.</span></div></div>
     <section class="panel setup" id="setup" aria-labelledby="setupTitle">
-      <div class="section-head"><h2 id="setupTitle">A quick introduction to your TV.</h2><span class="section-meta" id="setupMeta">Three steps. Then you're home.</span><span class="badge" id="pairbadge" hidden><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Paired</span></div>
+      <div class="section-head"><h2 id="setupTitle">A quick introduction to your TV.</h2><span class="section-meta" id="setupMeta">Three steps. Then you're home.</span><span class="badge" id="pairbadge" hidden><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Paired</span><button class="button secondary" id="btnForget" hidden><span>Forget this TV</span></button></div>
       <div class="steps">
         <div class="step current" id="stepFind">
           <div class="step-heading"><span class="step-number">1</span><h3>Find your TV</h3></div>
@@ -389,6 +389,7 @@
       if (!on) $("tvchip").removeAttribute("title");
       $("statusChip").classList.toggle("on", on);
       $("pairbadge").hidden = !on;
+      $("btnForget").hidden = !on;
       $("setupMeta").hidden = on;
       $("stepFind").classList.toggle("complete", Boolean(tv));
       $("stepFind").classList.toggle("current", !tv);
@@ -566,6 +567,21 @@
       $("pinError").hidden = true;
     };
     $("pin").onkeydown = event => { if (event.key === "Enter" && !$("btnPair").disabled) $("btnPair").click(); };
+    $("btnForget").onclick = async () => {
+      if (!linked) return;
+      if (!confirm("Forget this TV? Sidee will no longer be paired with it. Tiles already installed on the TV stay there, and you can pair again any time.")) return;
+      try {
+        const result = await request("/api/forget", {});
+        if (!result.ok) throw new Error("Couldn't forget this TV. Try again.");
+        setLinked(false);
+        resetPairing(false);
+        loadCatalog();
+        syncStatus().catch(() => {});
+        log("TV forgotten. Pair another TV to continue.", "ok");
+      } catch (error) {
+        log(error.message || "Couldn't forget this TV. Try again.", "err");
+      }
+    };
     $("btnPair").onclick = async () => {
       if (!tv || !pairingId || pairBusy) return;
       const pin = $("pin").value.trim();

@@ -251,6 +251,21 @@ def _diagnostics() -> dict:
             "steps": steps, "paired": session is not None}
 
 
+def _forget_tv() -> dict:
+    """Delete the saved TV pairing so another TV can be paired.
+
+    Only the pairing file goes: the dashboard keeps running and
+    installed tiles on the TV are untouched (they live on the TV).
+    """
+    path = client.Session.path()
+    forgotten = False
+    if os.path.isfile(path):
+        os.remove(path)
+        forgotten = True
+    _invalidate_catalog_cache()
+    return {"ok": True, "forgotten": forgotten}
+
+
 class Handler(http.server.BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
@@ -349,6 +364,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                                            str(data.get("pin", ""))))
             elif parts.path == "/api/pair/cancel":
                 self._json(PAIRING.cancel(str(data.get("pairing_id", ""))))
+            elif parts.path == "/api/forget":
+                self._json(_forget_tv())
             elif parts.path == "/api/tv/check":
                 self._json(_probe_tv_ip(str(data.get("host", "")).strip()))
             elif (parts.path == "/api/shutdown" and
