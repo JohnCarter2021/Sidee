@@ -26,7 +26,12 @@ ASSETS = ("sidee-logo.png", "nuvio-wordmark.png", "jellyfin.png",
           "jellyfin-tile-bold.png", "stremio.png",
           "logos/mkissa.png", "logos/nekowatch.png", "logos/anistream.png",
           "logos/movy.png", "logos/popcornmovies.png", "logos/flystream.png",
-          "logos/rivestream.png", "logos/sevenmovies.png")
+          "logos/rivestream.png", "logos/sevenmovies.png",
+          "logos/everythingmoe.png", "logos/wotaku.svg", "logos/miruro.png",
+          "logos/reanime.png", "logos/animex.png", "logos/anipm.png",
+          "logos/cinejoy.svg", "logos/anidap.png",
+          "logos/theindex.png", "logos/justindex.png", "logos/anikoto.png",
+          "logos/animepahe.png")
 PUBLIC_FILES = (*TOP_LEVEL, *("core/" + n for n in CORE_MODULES),
                 "core/dashboard.html", "core/tv-client.bundle",
                 *("assets/" + n for n in ASSETS))
