@@ -246,13 +246,19 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30
+      - name: Enable KVM for the emulator
+      run: |
+      if [ -e /dev/kvm ]; then sudo chmod 666 /dev/kvm 2>/dev/null || true; ls -l /dev/kvm; else echo "no /dev/kvm on this runner"; fi
       - name: Emulator smoke test
         uses: reactivecircus/android-emulator-runner@v2
+        timeout-minutes: 12
         with:
           api-level: 34
           arch: x86_64
           target: google_apis
           profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: |
             adb install android/app/build/outputs/apk/debug/app-debug.apk
             adb shell am start -n io.github.johncarter2021.sidee/.MainActivity
