@@ -73,5 +73,13 @@ tasks.named("preBuild") {
     dependsOn(copyCore)
 }
 
+// Chaquopy's merge task consumes the copied core tree, so it must
+// declare the dependency explicitly: Gradle's task-dependency
+// validation fails otherwise (run #14: mergeDebugPythonSources
+// used copyCore's output with no declared dependency).
+tasks.matching { it.name.endsWith("PythonSources") }.configureEach {
+    dependsOn(copyCore)
+}
+
 dependencies {
 }
