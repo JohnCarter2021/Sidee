@@ -87,7 +87,13 @@ class TestBuilderGuards(unittest.TestCase):
             finally:
                 os.chdir(previous)
             self.assertTrue(found.is_absolute())
-            self.assertEqual(found, tool)
+            # Compare resolved paths: resolve() also normalises
+            # symlinked temp dirs (/var -> /private/var on macOS)
+            # and 8.3 short paths on Windows, so the raw temp path
+            # is not equal to the resolved one on those runners
+            # (the Run #10 failure). Absolute + resolvable is the
+            # property the builder actually needs.
+            self.assertEqual(found, tool.resolve())
 
     def test_missing_appimagetool_is_rejected(self):
         # Pin the platform: without this, build() rejects the run on
