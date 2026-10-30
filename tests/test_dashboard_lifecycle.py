@@ -13,6 +13,23 @@ from tools.smoke_test import request, smoke
 
 
 class TestDashboardLifecycle(unittest.TestCase):
+    def test_loopback_bind_is_used_when_requested(self):
+        # Regression: Android's sidee_android passes host="127.0.0.1"
+        # and run #20 crashed with "unexpected keyword argument 'host'"
+        # because Dashboard did not accept it at all.
+        dashboard = webui.Dashboard(port=0, headless=True, host="127.0.0.1")
+        try:
+            self.assertEqual(dashboard.server.server_address[0], "127.0.0.1")
+        finally:
+            dashboard.server.server_close()
+
+    def test_default_bind_is_still_all_interfaces(self):
+        dashboard = webui.Dashboard(port=0)
+        try:
+            self.assertEqual(dashboard.server.server_address[0], "0.0.0.0")
+        finally:
+            dashboard.server.server_close()
+
     def test_startup_does_not_wait_for_hostname_dns(self):
         with patch("socket.getfqdn", side_effect=AssertionError("reverse DNS used")):
             dashboard = webui.Dashboard(port=0)

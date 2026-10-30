@@ -515,21 +515,26 @@ class DashboardServer(http.server.ThreadingHTTPServer):
         self.server_port = self.server_address[1]
 
 
-def _bind_dashboard_server(port: int | None = None):
+def _bind_dashboard_server(port: int | None = None, host: str = "0.0.0.0"):
     port = _PORT if port is None else port
     try:
-        return DashboardServer(("0.0.0.0", port), Handler)
+        return DashboardServer((host, port), Handler)
     except OSError as e:
         if not platform_support.address_in_use(e):
             raise
-        return DashboardServer(("0.0.0.0", 0), Handler)
+        return DashboardServer((host, 0), Handler)
 
 
 class Dashboard:
     """Own the dashboard socket and lifecycle, shared by both launchers."""
 
-    def __init__(self, port: int | None = None, headless: bool = False):
-        self.server = _bind_dashboard_server(port)
+    def __init__(
+        self,
+        port: int | None = None,
+        headless: bool = False,
+        host: str = "0.0.0.0",
+    ):
+        self.server = _bind_dashboard_server(port, host)
         self.port = self.server.server_address[1]
         self.url = f"http://127.0.0.1:{self.port}/?key={ACCESS_KEY}"
         self.stop_event = threading.Event()
