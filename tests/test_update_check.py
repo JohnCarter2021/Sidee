@@ -24,12 +24,12 @@ class TestCheck(unittest.TestCase):
         result = update_check.check(
             fetch=lambda: {"tag_name": "v0.1.5.0",
                            "html_url": "https://example.invalid/r/1"})
-        self.assertEqual(result, {"ok": True, "current": "0.1.4.2",
+        self.assertEqual(result, {"ok": True, "current": "0.2.0.0",
                                   "latest": "0.1.5.0", "update_available": True,
                                   "url": "https://example.invalid/r/1"})
 
     def test_same_and_older_are_not_offered(self):
-        for tag in ("v0.1.4.2", "v0.1.4.1"):
+        for tag in ("v0.2.0.0", "v0.1.4.2"):
             result = update_check.check(fetch=lambda tag=tag: {"tag_name": tag})
             self.assertFalse(result["update_available"])
             self.assertEqual(result["url"], update_check.RELEASES_URL)
@@ -48,7 +48,7 @@ class TestCheck(unittest.TestCase):
 
 class TestUpdateApi(unittest.TestCase):
     def test_api_update_returns_check_result(self):
-        canned = {"ok": True, "current": "0.1.4.2", "latest": "0.1.5.0",
+        canned = {"ok": True, "current": "0.2.0.0", "latest": "0.1.5.0",
                   "update_available": True, "url": "https://example.invalid/r/1"}
         with tempfile.TemporaryDirectory() as directory, \
                 patch.dict(__import__("os").environ, {"SIDEE_STATE_DIR": directory}), \
