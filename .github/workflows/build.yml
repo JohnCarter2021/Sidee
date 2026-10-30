@@ -262,12 +262,8 @@ jobs:
           script: |
             adb install android/app/build/outputs/apk/debug/app-debug.apk
             adb shell am start -n io.github.johncarter2021.sidee/.MainActivity
-            for i in $(seq 1 24); do
-                          adb logcat -d > logcat.txt
-                                        if grep -q "Sidee dashboard started" logcat.txt; then echo "dashboard marker found"; break; fi
-                                                      sleep 5
-                                                                  done
-            adb logcat -d > logcat.txt
+                        for i in $(seq 1 24); do adb logcat -d > logcat.txt; if grep -q "Sidee dashboard started" logcat.txt; then echo "dashboard marker found"; break; fi; sleep 5; done
+                        adb logcat -d > logcat.txt
                         adb shell pidof io.github.johncarter2021.sidee || echo "app process not running"
             if grep -q "FATAL EXCEPTION" logcat.txt; then echo "app crashed:"; grep -A 20 "FATAL EXCEPTION" logcat.txt | head -60; exit 1; fi
             grep -q "Sidee dashboard started" logcat.txt || (echo "marker missing; Sidee/Python/crash lines:"; grep -E "Sidee|Python|chaquo|AndroidRuntime" logcat.txt | head -80; exit 1)
