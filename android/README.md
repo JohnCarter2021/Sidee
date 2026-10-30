@@ -46,11 +46,20 @@ gradle :app:assembleDebug
 
 The APK lands at `app/build/outputs/apk/debug/app-debug.apk`.
 
-## What the spike does not yet prove
+## What the spike has proven, and what it has not
 
-Items 2 and 3 need a TV (or a simulated TV on the LAN) and a phone
-or emulator run. The CI emulator step, when it lands, proves items
-1 and 4 on an emulator; items 2 and 3 stay open until a TV or
-simulated TV is available. If any gate item fails, the plan's
-fallbacks apply in order: defer Android, then a native Kotlin port
-— never a WebView wrapper around a PC dashboard.
+Proven by CI run #21 (commit 8d1973e, 2026-10-30): the APK builds
+in CI (item 5); on the emulator the app starts, Chaquopy runs the
+shared core, and the loopback dashboard starts — the "Sidee
+dashboard started" marker appeared about 7 seconds after launch
+and the app process stayed running (items 1 and the emulator part
+of 4). No crash lines.
+
+Still open: items 2 and 3 (SSDP discovery, MQTT/TLS + PIN) need a
+TV or a simulated TV on the LAN, and the restart-persistence part
+of item 4 needs a close-and-reopen run on a phone or emulator.
+Until those are proven, Phase 4 proceeds with Android included
+but the Phase 5 release must not claim TV pairing from the phone
+works. If any gate item fails, the plan's fallbacks apply in
+order: defer Android, then a native Kotlin port — never a WebView
+wrapper around a PC dashboard.
