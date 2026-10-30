@@ -22,7 +22,7 @@ import time
 import urllib.parse
 import webbrowser
 
-from . import catalog, client, presets, platform_support
+from . import catalog, client, presets, platform_support, update_check
 from .pairing import PairingFlow
 from .phone import qr_image
 
@@ -313,6 +313,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(body)
         elif path == "/api/status":
             self._json(_status())
+        elif path == "/api/update":
+            self._json(update_check.check())
         elif path == "/api/phone":
             query = urllib.parse.parse_qs(parts.query, keep_blank_values=True)
             tv_host = query.get("tv_host", [None])[0]

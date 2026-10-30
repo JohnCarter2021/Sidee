@@ -20,6 +20,22 @@ class CatalogTest(unittest.TestCase):
         self.addCleanup(patcher.stop)
         webui._invalidate_catalog_cache()
 
+    def test_built_in_dashboard_icons_are_bundled(self):
+        # Phase 4 icon bundling: every built-in's dashboard card icon must
+        # be a file in assets/ (never a remote URL), and no built-in may
+        # point at the upstream fork.
+        import os
+        from core import presets
+        root = os.path.join(os.path.dirname(__file__), "..")
+        for key, preset in presets.PRESETS.items():
+            self.assertNotIn("Empi9245", preset.get("image", ""),
+                             f"{key} still points at upstream")
+            icon = preset.get("icon", "")
+            self.assertTrue(icon.startswith("assets/"),
+                            f"{key} has no bundled dashboard icon")
+            self.assertTrue(os.path.isfile(os.path.join(root, icon)),
+                            f"{key} icon missing: {icon}")
+
     def test_built_ins(self):
         apps = catalog.built_in_apps()
         self.assertEqual([a["key"] for a in apps],

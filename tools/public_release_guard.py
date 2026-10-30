@@ -17,11 +17,13 @@ CORE_MODULES = (
     "__init__.py", "_qrcodegen.py", "catalog.py", "client.py",
     "native_api.py",
     "native_session.py", "pairing.py", "phone.py", "platform_support.py",
+    "update_check.py",
     "presets.py", "protocol.py", "webui.py",
 )
 TOP_LEVEL = ("README.md", "LICENSE", "requirements.txt", "sidee.py",
              "start-windows.bat", "start-windows.ps1")
-ASSETS = ("sidee-logo.png", "nuvio-wordmark.png", "jellyfin.png")
+ASSETS = ("sidee-logo.png", "nuvio-wordmark.png", "jellyfin.png",
+          "jellyfin-tile-bold.png", "stremio.png")
 PUBLIC_FILES = (*TOP_LEVEL, *("core/" + n for n in CORE_MODULES),
                 "core/dashboard.html", "core/tv-client.bundle",
                 *("assets/" + n for n in ASSETS))

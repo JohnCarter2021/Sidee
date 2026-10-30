@@ -306,7 +306,7 @@
       </div></details>
       <details id="activity"><summary><svg class="icon" aria-hidden="true"><use href="#i-activity"/></svg>Connection activity<span class="activity-count" id="activityCount">Ready</span><svg class="icon chevron" aria-hidden="true"><use href="#i-chevron"/></svg></summary><div id="log" role="log" aria-label="Connection activity" aria-live="off"><span class="log-line">Ready when you are.</span></div></details>
     </div>
-    <footer><div><p class="footer-brand">Small tool. A lot of heart.</p><p>Made by Sidee, after months of trying and nearly giving up.</p></div></footer>
+    <footer><div><p class="footer-brand">Small tool. A lot of heart.</p><p>Made by Sidee, after months of trying and nearly giving up.</p><p><button class="button secondary" id="btnUpdate"><span>Check for updates</span></button> <span id="updateNote" hidden></span></p></div></footer>
   </main>
   <a class="coffee" id="kofi" href="#" target="_blank" rel="noopener noreferrer" aria-label="Support Sidee on Ko-fi">
     <span class="coffee-mark"><svg class="icon" aria-hidden="true"><use href="#i-coffee"/></svg></span>
@@ -582,6 +582,31 @@
         log(error.message || "Couldn't forget this TV. Try again.", "err");
       }
     };
+    $("btnUpdate").onclick = async () => {
+      const note = $("updateNote");
+      note.hidden = false;
+      busy("btnUpdate", true, "Checking\u2026");
+      try {
+        const result = await request("/api/update");
+        if (!result.ok) { note.textContent = result.error || "Couldn't check for updates. Try again."; return; }
+        note.textContent = "";
+        if (result.update_available) {
+          note.append("Sidee " + result.latest + " is available. ");
+          const link = document.createElement("a");
+          link.href = result.url;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.textContent = "Download it from GitHub Releases";
+          note.append(link);
+        } else {
+          note.textContent = "You're up to date (Sidee " + result.current + ").";
+        }
+      } catch (error) {
+        note.textContent = "Couldn't check for updates. Try again.";
+      } finally {
+        busy("btnUpdate", false);
+      }
+    };
     $("btnPair").onclick = async () => {
       if (!tv || !pairingId || pairBusy) return;
       const pin = $("pin").value.trim();
@@ -742,6 +767,7 @@
           img.className = "app-icon";
           img.src = imgSrc;
           img.alt = "";
+          img.onerror = () => img.remove();
           img.width = 50;
           img.height = 50;
           body.appendChild(img);

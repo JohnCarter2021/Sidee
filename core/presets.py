@@ -24,7 +24,10 @@ PRESETS: dict[str, dict] = {
         "server_builder": "stremio",
         "server_optional": True,
         "server_placeholder": "Streaming server URL (optional)",
+        # TV tile icon stays the community build's own URL (the TV fetches
+        # it); the dashboard card uses the bundled copy below.
         "image": "https://noobygains.github.io/stremio-vidaa-tv/icon.png",
+        "icon": "assets/stremio.png",
         "description": "Full Stremio TV for VIDAA with D-pad navigation",
     },
     "jellyfin": {
@@ -33,7 +36,7 @@ PRESETS: dict[str, dict] = {
         "url": "",  # built from the user's server address
         "needs_server": True,
         "server_placeholder": "Your server's IP or URL",
-        "image": "https://raw.githubusercontent.com/Empi9245/Sidee/main/assets/jellyfin-tile-bold.png",
+        "image": "https://raw.githubusercontent.com/JohnCarter2021/Sidee/main/assets/jellyfin-tile-bold.png",
         "icon": "assets/jellyfin.png",
         "description": "Your media from your Jellyfin server",
     },
