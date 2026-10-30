@@ -649,7 +649,7 @@
       installed: "Installed", unknown: "Not checked yet", remove: "Remove",
       noMatch: "No apps match your search.", loading: "Loading apps…"
     };
-    let catalogApps = [], catalogFilter = "All", catalogSearch = "", catalogLoading = false;
+    let catalogApps = [], catalogFilter = "All", catalogSearch = "", catalogLoading = false, catalogStateText = "";
     function gridButtonId(key, kind) { return "btn-grid-" + kind + "-" + key; }
     function updateInstallButtons() {
       const disabled = !linked || installBusy || findBusy;
@@ -743,7 +743,8 @@
         const empty = document.createElement("p");
         empty.textContent = catalogApps.length ? STRINGS.noMatch : STRINGS.loading;
         grid.appendChild(empty);
-        return;
+        updateInstallButtons();
+        return 0;
       }
       shown.forEach(app => {
         const article = document.createElement("article");
@@ -823,7 +824,7 @@
           const remove = document.createElement("button");
           remove.className = "button secondary grid-remove";
           const removeLabel = document.createElement("span");
-          removeLabel.textContent = STRINGS.remove;
+          removeLabel.textContent = STRINGS.remove + " " + app.name;
           remove.appendChild(removeLabel);
           remove.onclick = async () => {
             if (!confirm("Remove " + app.name + " from your custom apps?")) return;
@@ -837,6 +838,7 @@
         grid.appendChild(article);
       });
       updateInstallButtons();
+      return shown.length;
     }
     async function loadCatalog(force) {
       if (catalogLoading) return;
@@ -852,6 +854,7 @@
           else text = "Installed state could not be checked.";
           if (result.tv_error) text += " TV check: " + result.tv_error;
           if (result.custom_error) text += " " + result.custom_error;
+          catalogStateText = text;
           $("gridState").textContent = text;
           renderFilters();
           renderGrid();
@@ -859,7 +862,13 @@
       } catch (error) { log(error.message || "Couldn't load apps.", "err"); }
       finally { catalogLoading = false; }
     }
-    $("appSearch").oninput = () => { catalogSearch = $("appSearch").value.trim(); renderGrid(); };
+    $("appSearch").oninput = () => {
+      catalogSearch = $("appSearch").value.trim();
+      const count = renderGrid();
+      $("gridState").textContent = catalogSearch
+        ? (count === 0 ? "No apps match your search." : "Showing " + count + (count === 1 ? " app." : " apps."))
+        : catalogStateText;
+    };
     $("btnRefreshCatalog").onclick = () => loadCatalog(true);
     $("btnDiagnostics").onclick = async () => {
       const results = $("diagResults");

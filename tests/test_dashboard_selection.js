@@ -246,3 +246,14 @@ test("a late startup state error does not disconnect a TV found afterwards", asy
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(app.node("installHint").hidden, true);
 });
+
+test("searching announces the result count through the grid status", async () => {
+  const app = await dashboard(saved("10.23.7.42"), [found("10.23.7.42")]);
+  await app.find();
+  app.node("appSearch").value = "nomatch";
+  app.node("appSearch").oninput();
+  assert.equal(app.node("gridState").textContent, "No apps match your search.");
+  app.node("appSearch").value = "";
+  app.node("appSearch").oninput();
+  assert.equal(app.node("gridState").textContent, "Pair your TV to check which apps are installed.");
+});
