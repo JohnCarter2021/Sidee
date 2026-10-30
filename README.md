@@ -24,24 +24,22 @@ Compatibility varies by TV model and firmware. The primary tested firmware is U0
 
 ## Get started
 
-There is no public release yet. Until the Phase 5 release lands, downloads are **GitHub Actions artifacts**: they expire after 30 days and require signing in to GitHub to download. When the release is ready, the download links below will point at the release page instead.
+Download the **0.2.0.0 beta pre-release** from the [release page](https://github.com/JohnCarter2021/Sidee/releases/tag/v0.2.0.0). This is a pre-release beta, not a finished release — see the beta limits below and in the release notes.
 
-Current beta artifacts (from a successful `Build Sidee` run):
+Release assets (SHA-256 checksums in `SHA256SUMS.txt` on the same page):
 
-| Platform | Artifact | What you get |
+| Platform | Asset | What you get |
 | --- | --- | --- |
-| Windows | `Sidee-Windows-Exe` | Portable exe (no installer) |
-| Windows | `Sidee-Windows` | Source ZIP (runs with `start-windows.bat`; downloads a pinned Python runtime on first launch) |
-| macOS Apple Silicon | `Sidee-macOS-arm64` | App + DMG |
-| macOS Intel | `Sidee-macOS-x64` | App + DMG |
-| Linux x86_64 | `Sidee-Linux-x86_64` | AppImage |
-| Android | `Sidee-Android` | Sideload APK (debug build) |
-
-Planned release asset names (Phase 5): `Sidee-Windows.zip`, `Sidee-macOS-arm64.dmg` + `.app.zip`, `Sidee-macOS-x64.dmg` + `.app.zip`, `Sidee-Linux-x86_64.AppImage`, `Sidee-Android.apk`, all with SHA-256 checksums on the release page.
+| Windows | `Sidee-Windows-Exe.zip` | Portable exe (no installer) |
+| Windows | `sidee-windows.zip` | Source ZIP (runs with `start-windows.bat`; downloads a pinned Python runtime on first launch) |
+| macOS Apple Silicon | `Sidee-macOS-arm64.app.zip` + `.dmg` | App + DMG |
+| macOS Intel | `Sidee-macOS-x64.app.zip` + `.dmg` | App + DMG |
+| Linux x86_64 | `Sidee-Linux-x86_64.AppImage` | AppImage |
+| Android | `app-debug.apk` | Sideload APK (debug build) |
 
 ### Windows
 
-1. Download the `Sidee-Windows-Exe` artifact and extract it.
+1. Download the `Sidee-Windows-Exe.zip` release asset and extract it.
 2. Run the exe. Keep its window open while using the dashboard.
 3. Follow the on-screen steps in the dashboard.
 
@@ -53,7 +51,7 @@ If the browser does not open automatically, use the full dashboard link shown by
 
 ### macOS
 
-1. Download the `Sidee-macOS-arm64` (Apple Silicon) or `Sidee-macOS-x64` (Intel) artifact.
+1. Download the `Sidee-macOS-arm64` (Apple Silicon) or `Sidee-macOS-x64` (Intel) release asset.
 2. Open the DMG, drag Sidee.app to Applications, and launch it.
 3. Use **Open dashboard** in Sidee's control window.
 
@@ -63,7 +61,7 @@ Sidee's control window must remain open while you use the dashboard; **Quit Side
 
 ### Linux
 
-1. Download the `Sidee-Linux-x86_64` artifact and extract the AppImage.
+1. Download the `Sidee-Linux-x86_64.AppImage` release asset.
 2. Make it executable (`chmod +x Sidee-Linux-x86_64.AppImage`) and run it.
 3. Follow the on-screen steps in the dashboard.
 
@@ -71,7 +69,7 @@ Ubuntu LTS is the primary tested distro. Other distros are not promised in v1; i
 
 ### Android (beta, sideload)
 
-1. Download the `Sidee-Android` artifact on your phone.
+1. Download the `app-debug.apk` release asset on your phone.
 2. Allow installing from this source when Android asks ("unknown apps" prompt — expected for a sideloaded beta, not a defect), then install the APK.
 3. Open Sidee. The dashboard runs inside the app, on the phone only.
 
