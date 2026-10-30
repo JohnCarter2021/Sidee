@@ -72,7 +72,11 @@ def find_appimagetool(explicit: Path | None) -> Path:
     if explicit is not None:
         if not explicit.is_file():
             raise SystemExit(f"appimagetool not found: {explicit}")
-        return explicit
+        # Resolve to absolute: a relative path like ./appimagetool
+        # stringifies to the bare name "appimagetool" in subprocess,
+        # which then searches PATH instead of the working directory
+        # (the Run #9 Linux failure). An absolute path is used as-is.
+        return explicit.resolve()
     found = shutil.which("appimagetool")
     if found is None:
         raise SystemExit(

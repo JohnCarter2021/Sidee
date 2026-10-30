@@ -1,5 +1,6 @@
 """Linux AppImage packaging: spec datas, AppDir layout, builder guards."""
 from pathlib import Path
+import os
 import runpy
 import shutil
 import tempfile
@@ -50,7 +51,10 @@ class TestAppDir(unittest.TestCase):
         self.assertEqual(apprun.read_text(encoding="utf-8"),
                          "#!/bin/sh\n"
                          'exec "$APPDIR/usr/bin/Sidee/Sidee" "$@"\n')
-        self.assertTrue(apprun.stat().st_mode & 0o111)
+        # Windows chmod cannot set exec bits, so the mode check
+        # only applies on Unix runners.
+        if os.name != "nt":
+            self.assertTrue(apprun.stat().st_mode & 0o111)
         desktop = (appdir / "Sidee.desktop").read_text(encoding="utf-8")
         self.assertIn("Exec=Sidee", desktop)
         self.assertIn("Icon=Sidee", desktop)
@@ -68,8 +72,30 @@ class TestBuilderGuards(unittest.TestCase):
             with self.assertRaisesRegex(SystemExit, "native Linux"):
                 packaging.build()
 
+    def test_relative_appimagetool_path_is_resolved_absolute(self):
+        # Run #9 Linux: CI passed ./appimagetool, which Path
+        # stringifies to the bare name "appimagetool", so subprocess
+        # searched PATH instead of the working directory.
+        import os
+        with tempfile.TemporaryDirectory() as temporary:
+            tool = Path(temporary) / "appimagetool"
+            tool.write_bytes(b"fake-tool")
+            previous = os.getcwd()
+            try:
+                os.chdir(temporary)
+                found = packaging.find_appimagetool(Path("./appimagetool"))
+            finally:
+                os.chdir(previous)
+            self.assertTrue(found.is_absolute())
+            self.assertEqual(found, tool)
+
     def test_missing_appimagetool_is_rejected(self):
-        with patch.object(packaging, "check_public_source"):
+        # Pin the platform: without this, build() rejects the run on
+        # Windows/macOS with "native Linux" before it ever checks the
+        # tool path, so this test failed on every non-Linux CI job in
+        # Run #9 even though the guard itself is correct.
+        with patch.object(packaging.sys, "platform", "linux"), \
+                patch.object(packaging, "check_public_source"):
             with self.assertRaisesRegex(SystemExit, "appimagetool not found"):
                 packaging.build(Path("/nonexistent/appimagetool"))
 

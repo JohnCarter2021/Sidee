@@ -230,6 +230,7 @@ class TestLinuxDiscovery(unittest.TestCase):
     def test_linux_uses_ip_addr_first(self):
         response = Mock(returncode=0, stdout=LINUX_IP_ADDR)
         with patch.object(platform.sys, "platform", "linux"), \
+                patch.object(platform.os, "name", "posix"), \
                 patch.object(platform.subprocess, "run", return_value=response) as run:
             self.assertEqual(platform.local_ipv4_interfaces(),
                              [("192.168.1.10", "192.168.1.255"),
@@ -244,6 +245,7 @@ class TestLinuxDiscovery(unittest.TestCase):
         calls = [Mock(returncode=0, stdout=""),
                  Mock(returncode=0, stdout=ifconfig)]
         with patch.object(platform.sys, "platform", "linux"), \
+                patch.object(platform.os, "name", "posix"), \
                 patch.object(platform.subprocess, "run", side_effect=calls) as run:
             self.assertEqual(platform.local_broadcasts(), ["192.168.88.255"])
         self.assertEqual([call.args[0] for call in run.call_args_list],
@@ -251,6 +253,7 @@ class TestLinuxDiscovery(unittest.TestCase):
 
     def test_linux_returns_empty_when_both_commands_fail(self):
         with patch.object(platform.sys, "platform", "linux"), \
+                patch.object(platform.os, "name", "posix"), \
                 patch.object(platform.subprocess, "run",
                              side_effect=OSError("no ip command")):
             self.assertEqual(platform.local_ipv4_interfaces(), [])
